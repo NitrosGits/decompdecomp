@@ -38,7 +38,8 @@ from pathlib import Path
 from ...network import NetworkError
 from .. import BETA, PROJECT, REBUILD_CHECK, Compiler, Console
 
-MSVC_VERSIONS = ["MSVC/6.0", "MSVC/7.0", "MSVC/7.1",  # the `msvc` pack
+MSVC_VERSIONS = ["MSVC/2.0", "MSVC/2.1", "MSVC/2.2",  # the `msvc2` pack: the user's own discs
+                 "MSVC/6.0", "MSVC/7.0", "MSVC/7.1",  # the `msvc` pack
                  "MSVC/8.0", "MSVC/8.0SP1", "MSVC/9.0", "MSVC/9.0SP1", "MSVC/10.0", "MSVC/10.0SP1"]  # `msvc2005`
 
 
@@ -52,7 +53,8 @@ class WindowsPC(Console):
     mode = PROJECT
     layout = "Ghidra + objdiff"
     compilers = tuple(Compiler(v, f"Visual C++ {v.removeprefix('MSVC/').replace('SP', ' SP')}") for v in MSVC_VERSIONS)
-    packs = (("msvc", "Visual C++ 6.0, 7.0 and 7.1, the compilers of PC games (proprietary)"),
+    packs = (("msvc2", "Visual C++ 2.0, 2.1 and 2.2, the compilers of the first 32-bit games (proprietary; from your own discs)"),
+             ("msvc", "Visual C++ 6.0, 7.0 and 7.1, the compilers of PC games (proprietary)"),
              ("msvc2005", "Visual C++ 2005, 2008 and 2010, the compilers of newer PC games (proprietary, 600 MB)"),
              ("ghidra", "finds a PC game's functions, and drafts for platforms m2c can't read (540 MB, needs Java 21+)"))
     guides = ("x86", "cpp")

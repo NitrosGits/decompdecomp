@@ -220,6 +220,22 @@ def _deb_data(deb: Path, out: Path) -> Path:
     raise ToolchainError(f"{deb.name} has no data.tar")
 
 
+def _extract_iso(iso: Path, tmp: str, wanted: list[str] | None) -> None:
+    """A disc image's files (only `wanted`, when given), by libarchive's bsdtar: macOS and Windows 10 and newer have it
+    as `tar`, Linux as `bsdtar` or 7-Zip. GNU tar can't read a disc."""
+    for argv in (["bsdtar"], ["tar"], ["7zz", "x"], ["7z", "x"]):
+        if not shutil.which(argv[0]):
+            continue
+        if argv[0].startswith("7z"):
+            cmd = [*argv, f"-o{tmp}", "-y", str(iso), *(wanted or [])]
+        else:
+            cmd = [*argv, "-xf", str(iso), "-C", tmp, *(wanted or [])]
+        done = subprocess.run(cmd, capture_output=True, text=True, creationflags=NO_WINDOW)
+        if done.returncode == 0:
+            return  # (a failure goes on to the next: GNU tar is `tar` on Linux and can't read a disc)
+    raise ToolchainError(f"can't read {iso.name}: a disc image needs bsdtar (or 7-Zip) on this computer")
+
+
 def _extract(archive: Path, dest: Path, subdir: str | None, keep: dict[str, str] | None = None) -> None:
     """Unpack an archive (or its `subdir`) into `dest`. `keep`: {path in it: where it goes in dest}, and nothing else:
     a compiler's archive is often a whole install (its IDE, libraries, the C runtime's sources: 700 MB for Visual C++
@@ -250,6 +266,8 @@ def _extract(archive: Path, dest: Path, subdir: str | None, keep: dict[str, str]
                     mode = info.external_attr >> 16
                     if mode & 0o111 and not info.is_dir():
                         os.chmod(target, 0o755)
+        elif archive.name.lower().endswith(".iso"):
+            _extract_iso(archive, tmp, wanted)
         elif archive.name.endswith(".zst"):
             # GNU tar extracts it; never restore owners from the archive. The zstd layer is undone here first: tar
             # would run the zstd command for it, which many systems don't have (tar then just fails with code 2)
@@ -334,7 +352,12 @@ def install(tid: str, *, accept_license: bool = False, force: bool = False, log=
         downloads.mkdir(parents=True, exist_ok=True)
         for part in parts:
             archive = downloads / (part.get("file") or Path(part["url"]).name)  # file: when two urls share a name
-            if not archive.exists() or (part.get("sha256") and _sha256(archive) != part["sha256"]):
+            if part.get("local"):  # a disc the user owns: there is no download, so it is theirs to put in place
+                if not archive.exists():
+                    raise ToolchainError(
+                        f"{tc.name} comes from a disc image that decompdecomp can't download. Copy your "
+                        f"{part.get('disc', archive.name)} (sha256 {part['sha256']}) to {archive}, then try again.")
+            elif not archive.exists() or (part.get("sha256") and _sha256(archive) != part["sha256"]):
                 _download(part["url"], archive, log)
             digest = _sha256(archive)
             if part.get("sha256") and digest != part["sha256"]:

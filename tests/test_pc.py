@@ -664,7 +664,7 @@ def test_without_a_rich_header_the_linker_version_names_the_toolset():
     assert built((9, 0)).pack_version == "9.0SP1"  # the newest build of its version: the most games had it
     assert (built((7, 10)).version, built((7, 0)).version, built((10, 10)).version) == ("7.1", "7.0", "10.0")
     assert built((7, 10)).cannot_match() == [] and built((14, 29)).out_of_scope
-    unknown = built((2, 50))  # not a Microsoft linker's version
+    unknown = built((1, 50))  # (2.50 is Visual C++ 2.0's: tests/test_pc_msvc2.py) not a Microsoft linker's version
     assert unknown.version is None and unknown.pack_version == "6.0" and unknown.blockers() == []
 
 
@@ -674,8 +674,9 @@ def test_every_visual_cpp_the_import_picks_is_in_a_compiler_pack():
     from decompnet.consoles.pc import MSVC_VERSIONS
 
     picked = scratch_pe.RICH_BUILDS.values()
-    # every one but 2005 RTM, whose Rich build is SP1's: it's chosen by file (try_compiler, Settings)
-    assert sorted([*picked, "8.0"]) == sorted(v.removeprefix("MSVC/") for v in MSVC_VERSIONS)
+    # every one but 2005 RTM, whose Rich build is SP1's, and 2.1, which shares 2.2's linker: chosen by file
+    # (try_compiler, Settings)
+    assert sorted([*picked, "8.0", "2.1"]) == sorted(v.removeprefix("MSVC/") for v in MSVC_VERSIONS)
     assert {scratch_pe.compiler_pack(v) for v in picked} == set(scratch_pe.MSVC_PACKS)
     with pytest.raises(ForkError, match="no Visual C\\+\\+ 5.0"):
         scratch_pe.compiler_pack("5.0")

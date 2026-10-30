@@ -847,6 +847,41 @@ url = "https://github.com/OmniBlade/decomp.me/releases/download/msvcwin9x/msvc7.
 sha256 = "49eba7f9f72644f6f872a4176baeac544e8b5dfb2be1f47bb4d439b1136ffeac"
 into = "7.1"
 
+[msvc2]
+name = "Microsoft Visual C++ 2.0, 2.1 and 2.2 (PC)"
+kind = "compiler-pack"
+platform = "PC"
+license = "proprietary"
+source = "your own Visual C++ 2.x discs: the disc images are not downloadable, so you copy each to the downloads folder"
+description = "The compilers of the first 32-bit Windows games (1994-1996): Visual C++ 2.0 (cl 9.00), 2.1 and 2.2 (cl 9.10). Windows programs, run through wibo on Linux and macOS. Unlike the other packs this one comes from discs you own."
+# `local`: no download; the image (named `file`, checked against `sha256`) is copied by the user to the downloads
+# folder. Each disc has the compiler (MSVC20/BIN), headers and libraries; the 2.1 and 2.2 discs are upgrades that carry
+# the whole compiler, not a patch.
+[[msvc2.parts]]
+file = "msvc20.iso"
+disc = "Visual C++ 2.0 (2.00.4244) disc image"
+local = true
+url = "local:msvc20.iso"
+sha256 = "f97defedc24ae3e27d40678620d03e3050e60c21933f773e6bff7aa40089c681"
+into = "2.0"
+keep = { "MSVC20/BIN" = "Bin", "MSVC20/INCLUDE" = "Include", "MSVC20/LIB" = "Lib" }
+[[msvc2.parts]]
+file = "VCPP-2.10.iso"
+disc = "Visual C++ 2.1 upgrade disc image"
+local = true
+url = "local:VCPP-2.10.iso"
+sha256 = "712df9a79ce4361617e783fa20b58ba664a1e12b3772c3b99d19f53cbc0c3678"
+into = "2.1"
+keep = { "MSVC20/BIN" = "Bin", "MSVC20/INCLUDE" = "Include", "MSVC20/LIB" = "Lib" }
+[[msvc2.parts]]
+file = "VCPP-2.20.iso"
+disc = "Visual C++ 2.2 upgrade disc image"
+local = true
+url = "local:VCPP-2.20.iso"
+sha256 = "a48554a2bde7cd723ca9b2d9e6caa3d46589ee8aa64fb8df2d9d6d94df33e79e"
+into = "2.2"
+keep = { "MSVC20/BIN" = "Bin", "MSVC20/INCLUDE" = "Include", "MSVC20/LIB" = "Lib" }
+
 # Each archive is a whole install: `keep` takes its compiler (Bin) and headers (Include: Visual C++'s and the Windows
 # SDK's in one folder, as the 6.0-7.1 pack has them), so the project's build finds every version the same way.
 # 2005's RTM and SP1 share the Rich header's build (50727), so an import takes SP1, the one most 2005 games were built

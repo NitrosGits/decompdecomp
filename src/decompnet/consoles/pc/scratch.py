@@ -58,6 +58,7 @@ UNIT_BYTES = 0x1000
 FUNCTION_ALIGN, PADDING_BYTES, ALIGNED_SHARE = 16, (0xCC, 0x00, 0x90), 3
 TEMPLATE = Path(__file__).with_name("project_template")
 MSVC_DEFAULT = "6.0"
+MSVC2_FLAGS = ["/nologo", "/c", "/Ox", "/Gy"]  # Visual C++ 2.x projects: no /GX (a 1995 game has no exceptions)
 DIR32, REL32 = 0x06, 0x14
 PAD = 0x90  # what Visual C++ 6 pads a function's section with (the linker pads between objects with 0xCC or zeros)
 # Which Visual C++ built each part of the program, by the product ids its Rich header gives: every version numbers its
@@ -77,7 +78,7 @@ RICH_COMPILERS = (
 )
 # Visual C++ 2015 to 2026 share their tools' ids: the first build of each (comp_id.txt)
 VC14_BUILDS = ((35503, "14.5"), (30401, "14.3"), (27508, "14.2"), (25017, "14.1"), (0, "14.0"))
-VISUAL_STUDIO = {"6.0": "6.0", "7.0": ".NET 2002", "7.1": ".NET 2003", "8.0": "2005", "9.0": "2008", "10.0": "2010",
+VISUAL_STUDIO = {"2.0": "2.0", "2.2": "2.2", "6.0": "6.0", "7.0": ".NET 2002", "7.1": ".NET 2003", "8.0": "2005", "9.0": "2008", "10.0": "2010",
                  "11.0": "2012", "12.0": "2013", "14.0": "2015", "14.1": "2017", "14.2": "2019", "14.3": "2022",
                  "14.4": "2022", "14.5": "2026"}
 # the release each common build is (comp_id.txt), so the import says "2008 SP1": each update generates other code
@@ -90,9 +91,10 @@ RELEASES = {("6.0", 8447): "SP3", ("6.0", 8799): "SP4", ("6.0", 8966): "SP5", ("
 # The compiler packs' Visual C++ (consoles/pc MSVC_VERSIONS) by the version and build the Rich header names: each update
 # generates other code, so a game builds with its own build's. 2005's RTM and SP1 are both build 50727 (the Rich
 # header keeps no more of the version), so an import takes SP1; RTM ("8.0") is chosen by file, with try_compiler. From each compiler's own banner (cl.exe)
-RICH_BUILDS = {("6.0", 8168): "6.0", ("7.0", 9466): "7.0", ("7.1", 3077): "7.1", ("8.0", 50727): "8.0SP1",
+# Visual C++ 2.x (1994-96) predates the Rich header: only its linker's version names it (no build number, 0 here)
+RICH_BUILDS = {("2.0", 0): "2.0", ("2.2", 0): "2.2", ("6.0", 8168): "6.0", ("7.0", 9466): "7.0", ("7.1", 3077): "7.1", ("8.0", 50727): "8.0SP1",
                ("9.0", 21022): "9.0", ("9.0", 30729): "9.0SP1", ("10.0", 30319): "10.0", ("10.0", 40219): "10.0SP1"}
-MSVC_PACKS = ("msvc", "msvc2005")  # toolchains.toml: 6.0-7.1, 2005-2010; each version in a folder of its pack
+MSVC_PACKS = ("msvc", "msvc2", "msvc2005")  # toolchains.toml: 6.0-7.1, 2.0-2.2, 2005-2010; each version in a folder of its pack
 LAST_IN_SCOPE = (14, 0)  # Visual C++ 2015: games built with 2017 and newer are out of decompdecomp's scope for now
 LINKER_VERSION_AT = 2  # in the optional header: the linker's major and minor version, a byte each
 # DRM and packers, by the sections they add to a program, as Detect It Easy's rules find them (github.com/horsicq/
@@ -425,7 +427,8 @@ def describe(data: bytes) -> Build:
         number = max(k[1] for k in files if k[0] == version and files[k] * MAIN_BUILD_SHARE >= by_version[version])
     else:  # no Rich header (stripped, or a store's signature in its place): the linker's version names the toolset
         major, minor = data[at + OPTIONAL_HEADER_AT + LINKER_VERSION_AT:at + OPTIONAL_HEADER_AT + LINKER_VERSION_AT + 2]
-        version = {6: "6.0", 7: "7.1" if minor >= 10 else "7.0"}.get(major, f"{major}.{minor // 10 if major == 14 else 0}")
+        # (Visual C++ 2.0's linker is 2.50, 2.1's and 2.2's 2.55; 2.1 and 2.2 share a compiler, so the newer stands for both)
+        version = {2: "2.0" if minor < 55 else "2.2", 6: "6.0", 7: "7.1" if minor >= 10 else "7.0"}.get(major, f"{major}.{minor // 10 if major == 14 else 0}")
         version, number = (version if version in VISUAL_STUDIO else None), None
     first = at + OPTIONAL_HEADER_AT + opt_size
     names = [data[first + SECTION_HEADER_BYTES * i:first + SECTION_HEADER_BYTES * i + 8].rstrip(b"\0").decode("latin-1")
@@ -1660,6 +1663,20 @@ def set_frame_flags(root: Path, version: str, keep: set[str] = frozenset()) -> i
 # ---------------------------------------------------------------------------------------------------- the project
 
 
+def flags_for_pack(configure_py: str, pack: str) -> str:
+    """The template's configure.py with the flags its compiler pack's Visual C++ takes: 2005 and later say /EHsc for
+    what 2.0 to 7.1 call /GX (and warn about the other on every file); 2.x games are built with /Ox, not /O2 (which
+    pools string literals, so a 1995 game's code differs: a hand-made Lemmings project matches 95% of its functions
+    with /Ox). /Gy goes with it: /O2 puts each function in a section of its own, which the judge compares them by, and
+    /Ox alone makes one .text per file, so objdiff finds almost no function."""
+    if pack == "msvc2005":
+        return configure_py.replace('"/GX"]  # /GX:', '"/EHsc"]  # /EHsc (/GX before 2005):')
+    if pack == "msvc2":
+        return re.sub(r"^CL_FLAGS = \[[^\]]*\].*$", f"CL_FLAGS = {json.dumps(MSVC2_FLAGS)}  # /Ox: what 2.x games were built with",
+                      configure_py, count=1, flags=re.M)
+    return configure_py
+
+
 def compiler_pack(version: str) -> str:
     """The pack a Visual C++ comes in (the `into` of its part in toolchains.toml)."""
     pack = next((p for p in MSVC_PACKS if any(part.get("into") == version for part in toolchains.get(p).parts)), None)
@@ -2070,8 +2087,7 @@ def create(root: Path, game: Path, *, compiler: str | None = None, log=print) ->
     (root / "include" / "common.h").write_text(TYPES_H, encoding="utf-8")
     cfg = root / "tools" / "configure.py"
     text = cfg.read_text(encoding="utf-8").replace(f'MSVC_VERSION = "{MSVC_DEFAULT}"', f'MSVC_VERSION = "{compiler}"')
-    if pack != "msvc":  # /GX is /EHsc from 2005 on, and saying /GX warns on every file
-        text = text.replace('"/GX"]  # /GX:', '"/EHsc"]  # /EHsc (/GX before 2005):')
+    text = flags_for_pack(text, pack)
     cfg.write_text(text, encoding="utf-8")
     conf = root / "config" / version
     conf.mkdir(parents=True)

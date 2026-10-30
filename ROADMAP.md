@@ -59,7 +59,7 @@ Where to start on a gap:
 - **Windows PC**: autopilot's Ghidra drafts compile, but rarely match beyond the tiny shapes exact drafts cover:
   Ghidra drafts a delinked object without its callees' prototypes, so a method call loses `this` and a callee's
   arguments are guessed (a draft fed the project's headers, through a Ghidra script that applies them, is the next
-  step). Only games built with Visual C++ 6.0 to 2010 can match so far: Newer
+  step). Only games built with Visual C++ 2.0 to 2010 can match so far (2.x from discs the user owns; a 1995 game imports and builds with 2.2, and three small functions of it match byte for byte, but the features above are otherwise not run on a 2.x game, and Setup has no place yet to hand over a disc image): Newer
   Windows games, below, is the plan for 2012 to 2015 and 64-bit. A class's constructors are one real name
   (`CFoo::CFoo`), so of two at two addresses (a copy constructor) only one can be written as a constructor: names.py
   would need the mangled signature in "names". A game's own DLLs come along when its folder or .exe is given by

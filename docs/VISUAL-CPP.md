@@ -18,6 +18,8 @@ import reads it and picks a compiler:
 3. A game built with a version decompdecomp doesn't have yet (2012 to 2015) imports, but its functions can't match
    until that version comes. Games built with 2017 or newer aren't started.
 
+Programs built before the Rich header (Visual C++ 2.x) have none, and the import reads the linker's version instead.
+
 The Rich header keeps only the build number, not the whole version. Some updates kept the build number of `cl.exe`
 but changed the compiler behind it, so the Rich header can't tell them apart:
 
@@ -30,6 +32,9 @@ but changed the compiler behind it, so the Rich header can't tell them apart:
 
 | VS | Visual C++ | `cl.exe` build | Released | Pack |
 | :-- | :-- | :-- | :-- | :-- |
+| 2.0 | Visual C++ 2.0 | 9.00 | 1994 | `msvc2` |
+| 2.1 | Visual C++ 2.1 | 9.10 | 1995 | `msvc2` |
+| 2.2 | Visual C++ 2.2 | 9.10 | 1996 | `msvc2` |
 | 6.0 | 6.0 (also used by SP1 and SP2) | 12.00.8168 | 1998 | `msvc` |
 | 7.0 | Visual Studio .NET 2002 | 13.00.9466 | 2002 | `msvc` |
 | 7.1 | Visual Studio .NET 2003 | 13.10.3077 | 2003 | `msvc` |
@@ -41,6 +46,12 @@ but changed the compiler behind it, so the Rich header can't tell them apart:
 | 10.0SP1 | 2010 SP1 | 16.00.40219.01 | 2011 | `msvc2005` |
 
 `src/decompnet/toolchains.toml` pins where each one comes from, with its checksum.
+
+Visual C++ 2.x is different: its compilers come from discs you own, which can't be downloaded. In Setup (or
+`toolchains.install("msvc2")`) you copy each disc image to decompdecomp's downloads folder under the name the error
+names; decompdecomp checks its checksum and unpacks the compiler, headers and libraries from it. Visual C++ 2.x
+predates the Rich header, so a game built with it is named by its linker's version: 2.50 is 2.0, and 2.55 is 2.2
+(2.1 and 2.2 share a linker and a compiler build, `cl` 9.10, so the import takes 2.2; choose 2.1 by file).
 
 ## Where the code changes
 

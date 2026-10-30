@@ -10,6 +10,10 @@ MSVC is proprietary: this needs the `msvc` toolchain (decompnet toolchain instal
     uv run python projects/demo-pc/build.py 10.0SP1    ->  build/10.0SP1/demoquest.exe
     uv run python projects/demo-pc/build.py 6.0 --pdb  ->  build/pdb/demoquest.exe + demoquest.pdb (its debug symbols)
 
+With a version of the `msvc2` pack (2.0, 2.1, 2.2: from discs you own, see toolchains.toml) it's Demo Quest as a game of
+1994-1996, compiled and linked by that Visual C++, so the program has no Rich header and its linker is 2.50 (2.0) or
+2.55 (2.1 and 2.2).
+
 With a version of the `msvc2005` pack (8.0, 8.0SP1, 9.0, 9.0SP1, 10.0, 10.0SP1) it's Demo Quest as a game of 2005-2012:
 compiled by that Visual C++, linked by 6.0's linker all the same. wibo runs 2005's and later linkers only up to their
 first lstrcmpiW (wibo 1.2.0; their compilers run), and the program's Rich header names the compiler of every file
@@ -74,8 +78,10 @@ def main() -> None:
             old.unlink()
     for src in (GAME / "game.c", GAME / "game.h", HERE / "pcmain.c"):
         shutil.copy(src, BUILD / src.name)
-    msvc = toolchains.require("msvc") / "6.0" / "Bin"
     cl = toolchains.require(compiler_pack(VERSION)) / VERSION / "Bin"
+    # Visual C++ 2.x is linked by its own linker, so the program says what a 2.x game does (a linker version of 2.50
+    # or 2.55 and no Rich header: scratch.guess_compiler); every other version by 6.0's
+    msvc = cl if VERSION.startswith("2.") else toolchains.require("msvc") / "6.0" / "Bin"
     wibo = [str(toolchains.binary("wibo"))] if sys.platform != "win32" else []
     if PDB and VERSION != "6.0":
         sys.exit("--pdb builds with Visual C++ 6.0 only (see this file's docstring)")

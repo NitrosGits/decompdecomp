@@ -247,6 +247,8 @@ class Core(Network):
             "OR substr(json_extract(meta,'$.demangled'),1,?)=? "
             "OR json_extract(meta,'$.demangled') LIKE ? ESCAPE '\\') ORDER BY name",
             proj["id"], sym, len(sym) + 1, sym + "@", sym, sym, len(sym) + 1, sym + "(", f"% {like}(%")
+        if not rows and re.fullmatch(r"[A-Za-z]\w*", sym):  # MSVC's C names start with _: func_00401000 is _func_00401000
+            return self._loose_functions("_" + text, project)  # (the guide tells agents to write func_<address>)
         if not rows and "::" not in sym and len(sym) >= 4:  # a method by its own name: Class::sym
             rows = self.store.all("SELECT * FROM functions WHERE project_id=? AND json_extract(meta,'$.demangled') "
                                   "LIKE ? ESCAPE '\\' ORDER BY name", proj["id"], f"%::{like}(%")
